@@ -11,7 +11,9 @@ def saving_list(lista):
             'Nazwa Produktu': [i.product_Name for i in lista],
             'EAN': [i.ean for i in lista],
             'Ilosc': [i.amount for i in lista],
-            'Location': [i.location for i in lista]}
+            'Location': [i.location for i in lista],
+            'Product Weight': [i.weight for i in lista],
+            'Expired Date': [i.data for i in lista]}
     df = pd.DataFrame(data)
     df.to_excel('Karta_Towarow_Zaaktualizowana.xlsx', index=False)
 
@@ -79,8 +81,7 @@ class Warehouse_System_Menagement(Location, Orders):
                 break
 
     def delivery(self, ean, yy, mm, dd, lista):
-        data = datetime.datetime(yy, mm, dd)
-        data = data.strftime('%x')
+        data = datetime.date(yy, mm, dd)
         print(data)
         for i in lista:
             if i.ean == ean:
@@ -146,7 +147,7 @@ class Warehouse_System_Menagement(Location, Orders):
                                             print('nie ma na lokacji ')
                                 if counter == 0:
                                     newProdOnLoc = Location(
-                                        newLocat, i.product_Name, i.kod_prod, i.ean, relocateAmount, i.data)
+                                        newLocat, i.product_Name, i.kod_prod, i.ean, relocateAmount, i.weight, i.data)
                                     lista.append(newProdOnLoc)
                                 if i.amount == 0:
                                     lista.remove(i)
@@ -179,4 +180,3 @@ New_Order2 = Orders('Stanbud', New_Order_ProductDuzyHurt, sum(
 for i in Orders.ListOfOrders['Geis']:
     print(i, len(Orders.ListOfOrders['Geis'][i]))
 Kuba.Main_Menu()
-# New_Order1.Making_Order(locatProd)

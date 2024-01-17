@@ -1,5 +1,5 @@
 from Magazyn_Product import Product, products, weights
-from Magazyn_Lokacje import locatProd
+from Magazyn_Lokacje import locatProd, ProductoIteration
 import datetime
 import random
 import pandas as pd
@@ -10,7 +10,9 @@ def saving_list(lista):
             'Nazwa Produktu': [i.product_Name for i in lista],
             'EAN': [i.ean for i in lista],
             'Ilosc': [i.amount for i in lista],
-            'Location': [i.location for i in lista]}
+            'Location': [i.location for i in lista],
+            'Product Weight': [i.weight for i in lista],
+            'Expired Date': [i.data for i in lista]}
     df = pd.DataFrame(data)
     df.to_excel('Karta_Towarow_Zaaktualizowana.xlsx', index=False)
 
@@ -36,8 +38,16 @@ def Escape_From_Order(listaDone, listaNotDone, Order):
 
 def QueueOfOrder(lista):
     # lista.sort(key=lambda x: x.location)
-    # if len([i for i in OrderedProductsInWarehouse if i.ean == j.ean]) > 1:sdsdsdsd
     sortedLista = list(sorted(lista, key=lambda x: x.location))
+    OlderDate = []
+    for i in sortedLista:
+        Twice = [j for j in sortedLista if i.ean == j.ean]
+        if len(Twice) > 1:
+            Twice.remove(Twice[0])
+            OlderDate.append(Twice)
+            for i in sortedLista:
+                if i in Twice:
+                    sortedLista.remove(i)
     NewOrderList = [i for i in sortedLista if i.location.split('-')[0][0] == 'R' and i.location.split('-')[2] == '00'
                     or i.location.split('-')[0][0] == 'R' and i.location.split('-')[2] == '01'
                     or i.location.split('-')[0][0] == 'R' and i.location.split('-')[2] == '02']
@@ -48,6 +58,7 @@ def QueueOfOrder(lista):
                   or i.location.split('-')[0][0] == 'R' and i.location.split('-')[2] == '04']
     for i in RHighLevel:
         NewOrderList.append(i)
+    NewOrderList.extend(OlderDate)
     for i in NewOrderList:
         print(i)
     return NewOrderList
@@ -109,12 +120,11 @@ class Orders(Orders_Product):
                     if j.data > expiry_time:
                         print('data wporzo')
                         OrderedProductsInWarehouse1.append(
-                            j)  # j.amount = ilosc w magazynie
-        # OrderedProductsInWarehouse.sort(key=lambda x: x.location)
+                            j)
                     else:
                         continue
-        TotalWeightOrder = sum(
-            [(i.weight * j.amount) for i, j in zip(OrderedProductsInWarehouse1, self.CreatedOrder)])
+        TotalWeightOrder = sum([(i.weight * j.amount)
+                                for i, j in zip(OrderedProductsInWarehouse1, self.CreatedOrder)])
         print('Order Number:', self.OrderNumber, 'Amount:',
               self.TotalAmount, 'Total weight of order: ', TotalWeightOrder, ' kg')
         OrderedProductsInWarehouse = QueueOfOrder(OrderedProductsInWarehouse1)
@@ -136,6 +146,7 @@ class Orders(Orders_Product):
                 for j in self.CreatedOrder:
                     for k in lista:
                         # if len([i for i in OrderedProductsInWarehouse if i.ean == j.ean]) > 1:
+                        # uzyc try: w przypadku braku kodu EAN pojawia sie blad AttributeError:
                         if i.ean == j.ean and i.ean == k.ean:
                             print(i.kod_prod, '\n', i.product_Name, '\n',
                                   'Amount needed/ Amount available\n', j.amount, '/', k.amount)
@@ -200,11 +211,21 @@ def Creating_Order(number):
     new_order = []
     for i in ListOfOrder:
         orderProductAmount = random.randint(5, 20)
-        random_date_expire = random.choice([0, 60, 90, 120])
-        newOrderProduct = Orders_Product(
-            i.product_Name, i.kod_prod, i.ean, i.weight, orderProductAmount, random_date_expire)
-        if newOrderProduct not in new_order:
-            new_order.append(newOrderProduct)
+        for j in locatProd:
+            if i.ean == j.ean:
+                if orderProductAmount < sum([j.amount for j in locatProd if j.ean == i.ean]):
+                    random_date_expire = random.choice([0, 60, 90, 120])
+                    newOrderProduct = Orders_Product(
+                        i.product_Name, i.kod_prod, i.ean, i.weight, orderProductAmount, random_date_expire)
+                    if newOrderProduct not in new_order:
+                        new_order.append(newOrderProduct)
+                else:
+                    # orderProductAmount < sum([j.amount for j in locatProd if j.ean == i.ean]):
+                    random_date_expire = random.choice([0, 60, 90, 120])
+                    newOrderProduct = Orders_Product(
+                        i.product_Name, i.kod_prod, i.ean, i.weight, j.amount, random_date_expire)
+                    if newOrderProduct not in new_order:
+                        new_order.append(newOrderProduct)
     return (new_order)
 
 
